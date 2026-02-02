@@ -146,7 +146,7 @@ export default function FlightsManagement() {
                 id="airlineCode"
                 placeholder="e.g., AA"
                 value={airlineCode}
-                onChange={(e) => setAirlineCode(e.target.value.toUpperCase().slice(0, 2))}
+                onChange={(e) => setAirlineCode(e.target.value.replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 2))}
                 className={errors.airlineCode ? 'border-destructive' : ''}
               />
               {errors.airlineCode && <p className="text-xs text-destructive">{errors.airlineCode}</p>}
@@ -158,9 +158,11 @@ export default function FlightsManagement() {
                 placeholder="e.g., 1234"
                 value={flightNumber}
                 onChange={(e) => setFlightNumber(e.target.value.replace(/\D/g, '').slice(0, 4))}
-                className={errors.flightNumber ? 'border-destructive' : ''}
+                className={errors.flightNumber || (flightNumber.length > 0 && flightNumber.length < 4) ? 'border-destructive' : ''}
               />
-              {errors.flightNumber && <p className="text-xs text-destructive">{errors.flightNumber}</p>}
+              {(errors.flightNumber || (flightNumber.length > 0 && flightNumber.length < 4)) && (
+                <p className="text-xs text-destructive">Must be exactly 4 digits</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="terminal">Terminal</Label>

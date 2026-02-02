@@ -110,6 +110,7 @@ export default function LoginPage() {
             {/* User Type Selection */}
             <div className="space-y-3">
               <Label className="text-base font-medium">Select User Type</Label>
+              
               <RadioGroup
                 value={userType}
                 onValueChange={(value) => {
@@ -123,6 +124,8 @@ export default function LoginPage() {
                     key={option.value}
                     htmlFor={option.value}
                     className={`flex items-center gap-3 rounded-lg border-2 p-3 cursor-pointer transition-all ${
+                      option.value === 'administrator' ? 'sm:col-span-2' : ''
+                    } ${
                       userType === option.value 
                         ? 'border-primary bg-primary/5' 
                         : 'border-border hover:border-primary/50'
