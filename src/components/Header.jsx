@@ -62,9 +62,22 @@ export function Header() {
     }
   };
 
-  if (!user) return null;
-
   const isUserWithName = (u) => 'firstName' in u && 'lastName' in u;
+
+  // Minimal header for login page (no user logged in)
+  if (!user) {
+    return (
+      <header className="sticky top-0 z-50 w-full border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        <div className="container flex h-16 items-center justify-between px-4">
+          <div className="flex items-center gap-2">
+            <Plane className="h-6 w-6 text-primary" />
+            <span className="text-lg font-semibold">Airport Luggage System</span>
+          </div>
+          <ThemeToggle />
+        </div>
+      </header>
+    );
+  }
 
   const userName = isUserWithName(user) ? `${user.firstName} ${user.lastName}` : 'User';
   const isStaffOrAdmin = user.role !== 'passenger';
