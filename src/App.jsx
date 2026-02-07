@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { DataProvider } from "@/contexts/DataContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { ThemeProvider } from "@/components/ThemeProvider";
 
 import LoginPage from "@/pages/LoginPage";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
@@ -33,48 +34,50 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <DataProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/" element={<Navigate to="/login" replace />} />
-              <Route path="/admin" element={<ProtectedRoute allowedRoles={['administrator']}><AdminDashboard /></ProtectedRoute>}>
-                <Route index element={<Navigate to="flights" replace />} />
-                <Route path="flights" element={<FlightsManagement />} />
-                <Route path="passengers" element={<PassengersManagement />} />
-                <Route path="staff" element={<StaffManagement />} />
-              </Route>
-              <Route path="/airline-staff" element={<ProtectedRoute allowedRoles={['airline_staff']}><AirlineStaffDashboard /></ProtectedRoute>}>
-                <Route index element={<Navigate to="check-in" replace />} />
-                <Route path="check-in" element={<CheckIn />} />
-                <Route path="bags" element={<BagsManagement />} />
-                <Route path="flights" element={<MyFlights />} />
-                <Route path="messages" element={<AirlineStaffMessages />} />
-              </Route>
-              <Route path="/gate-staff" element={<ProtectedRoute allowedRoles={['gate_staff']}><GateStaffDashboard /></ProtectedRoute>}>
-                <Route index element={<Navigate to="boarding" replace />} />
-                <Route path="boarding" element={<Boarding />} />
-                <Route path="flights" element={<GateStaffFlights />} />
-                <Route path="messages" element={<GateStaffMessages />} />
-              </Route>
-              <Route path="/ground-staff" element={<ProtectedRoute allowedRoles={['ground_staff']}><GroundStaffDashboard /></ProtectedRoute>}>
-                <Route index element={<Navigate to="security" replace />} />
-                <Route path="security" element={<SecurityClearance />} />
-                <Route path="loading" element={<LoadBags />} />
-                <Route path="bags" element={<AllBags />} />
-                <Route path="messages" element={<GroundStaffMessages />} />
-              </Route>
-              <Route path="/passenger" element={<ProtectedRoute allowedRoles={['passenger']}><PassengerDashboard /></ProtectedRoute>} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </DataProvider>
-      </AuthProvider>
-    </TooltipProvider>
+    <ThemeProvider>
+      <TooltipProvider>
+        <AuthProvider>
+          <DataProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/" element={<Navigate to="/login" replace />} />
+                <Route path="/admin" element={<ProtectedRoute allowedRoles={['administrator']}><AdminDashboard /></ProtectedRoute>}>
+                  <Route index element={<Navigate to="flights" replace />} />
+                  <Route path="flights" element={<FlightsManagement />} />
+                  <Route path="passengers" element={<PassengersManagement />} />
+                  <Route path="staff" element={<StaffManagement />} />
+                </Route>
+                <Route path="/airline-staff" element={<ProtectedRoute allowedRoles={['airline_staff']}><AirlineStaffDashboard /></ProtectedRoute>}>
+                  <Route index element={<Navigate to="check-in" replace />} />
+                  <Route path="check-in" element={<CheckIn />} />
+                  <Route path="bags" element={<BagsManagement />} />
+                  <Route path="flights" element={<MyFlights />} />
+                  <Route path="messages" element={<AirlineStaffMessages />} />
+                </Route>
+                <Route path="/gate-staff" element={<ProtectedRoute allowedRoles={['gate_staff']}><GateStaffDashboard /></ProtectedRoute>}>
+                  <Route index element={<Navigate to="boarding" replace />} />
+                  <Route path="boarding" element={<Boarding />} />
+                  <Route path="flights" element={<GateStaffFlights />} />
+                  <Route path="messages" element={<GateStaffMessages />} />
+                </Route>
+                <Route path="/ground-staff" element={<ProtectedRoute allowedRoles={['ground_staff']}><GroundStaffDashboard /></ProtectedRoute>}>
+                  <Route index element={<Navigate to="security" replace />} />
+                  <Route path="security" element={<SecurityClearance />} />
+                  <Route path="loading" element={<LoadBags />} />
+                  <Route path="bags" element={<AllBags />} />
+                  <Route path="messages" element={<GroundStaffMessages />} />
+                </Route>
+                <Route path="/passenger" element={<ProtectedRoute allowedRoles={['passenger']}><PassengerDashboard /></ProtectedRoute>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </DataProvider>
+        </AuthProvider>
+      </TooltipProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

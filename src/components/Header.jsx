@@ -13,7 +13,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plane, User as UserIcon, LogOut, Key, Menu } from 'lucide-react';
+import { Plane, User as UserIcon, LogOut, Key } from 'lucide-react';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 const ROLE_LABELS = {
   administrator: 'Administrator',
@@ -77,7 +78,8 @@ export function Header() {
             <span className="text-lg font-semibold">Airport Luggage System</span>
           </Link>
 
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="flex items-center gap-2">
