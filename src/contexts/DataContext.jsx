@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getFromStorage, setToStorage, STORAGE_KEYS } from '@/lib/storage';
 import { generateId, generateBagId, generateUsername, generatePassword } from '@/lib/generators';
+import { hashPasswordSync } from '@/lib/passwordUtils';
 
 const DataContext = createContext(undefined);
 
@@ -133,22 +134,23 @@ export function DataProvider({ children }) {
   const getBagsByFlight = useCallback((flightId) => bags.filter(b => b.flightId === flightId), [bags]);
   const getBagsByLocation = useCallback((location) => bags.filter(b => b.location === location), [bags]);
 
-  // Staff
+  // Staff - password is hashed before storage
   const addStaff = useCallback((staffData) => {
     const username = generateUsername();
-    const password = generatePassword();
+    const plainPassword = generatePassword();
     const newStaff = {
       ...staffData,
       id: generateId(),
       username,
-      password,
+      password: hashPasswordSync(plainPassword),
       requiresPasswordChange: true,
       createdAt: new Date(),
     };
     const updated = [...staff, newStaff];
     setStaff(updated);
     setToStorage(STORAGE_KEYS.STAFF, updated);
-    return { staff: newStaff, username, password };
+    // Return plain credentials for email sending only - never stored in plain text
+    return { staff: newStaff, username, password: plainPassword };
   }, [staff]);
 
   const removeStaff = useCallback((id) => {

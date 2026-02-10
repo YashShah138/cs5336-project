@@ -285,7 +285,7 @@ export default function StaffManagement() {
         open={!!deleteStaffId}
         onOpenChange={() => setDeleteStaffId(null)}
         title="Remove Staff Member"
-        description="Are you sure you want to remove this staff member? This action cannot be undone."
+        description={`Are you sure you want to remove the staff member "${(() => { const s = staffList.find(s => s.id === deleteStaffId); return s ? `${s.firstName} ${s.lastName}` : ''; })()}"? This action cannot be undone.`}
         confirmLabel="Remove"
         onConfirm={handleDeleteStaff}
         isDestructive
