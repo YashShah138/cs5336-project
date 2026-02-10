@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useToast } from '@/hooks/use-toast';
 import { validateName, validateEmail, validatePhone, validateAirlineCode } from '@/lib/validation';
-import { Plus, Trash2, Copy, Check, UserPlus } from 'lucide-react';
+import { Plus, Trash2, Check, UserPlus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 const STAFF_TYPE_LABELS = {
@@ -42,7 +42,6 @@ export default function StaffManagement() {
 
   // Credentials modal
   const [credentials, setCredentials] = useState(null);
-  const [copiedField, setCopiedField] = useState(null);
 
   // Delete state
   const [deleteStaffId, setDeleteStaffId] = useState(null);
@@ -85,7 +84,7 @@ export default function StaffManagement() {
       airlineCode: requiresAirline ? airlineCode.toUpperCase() : undefined,
     });
 
-    setCredentials({ username: result.username, password: result.password });
+    setCredentials({ email });
     toast({ title: 'Staff member added successfully', className: 'bg-success text-success-foreground' });
     
     // Reset form
@@ -97,11 +96,6 @@ export default function StaffManagement() {
     setErrors({});
   };
 
-  const handleCopy = async (value, field) => {
-    await navigator.clipboard.writeText(value);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 2000);
-  };
 
   const handleDeleteStaff = () => {
     if (deleteStaffId) {
@@ -260,44 +254,25 @@ export default function StaffManagement() {
         </TabsContent>
       </Tabs>
 
-      {/* Credentials Modal */}
+      {/* Credentials Sent Confirmation Modal */}
       <Dialog open={!!credentials} onOpenChange={() => setCredentials(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Staff Credentials Created</DialogTitle>
+            <DialogTitle>Staff Account Created</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
-            <p className="text-sm text-muted-foreground">
-              Please save these credentials. They will only be shown once.
-            </p>
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="text-xs text-muted-foreground">Username</p>
-                  <p className="font-mono font-medium">{credentials?.username}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleCopy(credentials?.username || '', 'username')}
-                >
-                  {copiedField === 'username' ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                <div>
-                  <p className="text-xs text-muted-foreground">Password</p>
-                  <p className="font-mono font-medium">{credentials?.password}</p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => handleCopy(credentials?.password || '', 'password')}
-                >
-                  {copiedField === 'password' ? <Check className="h-4 w-4 text-success" /> : <Copy className="h-4 w-4" />}
-                </Button>
+            <div className="flex items-center gap-3 p-4 bg-success/10 rounded-lg border border-success/20">
+              <Check className="h-6 w-6 text-success flex-shrink-0" />
+              <div>
+                <p className="font-medium">Credentials sent via email</p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Login credentials (username and password) have been sent to <span className="font-medium text-foreground">{credentials?.email}</span>.
+                </p>
               </div>
             </div>
+            <p className="text-sm text-muted-foreground">
+              The staff member will be required to change their password on first login.
+            </p>
           </div>
           <DialogFooter>
             <Button onClick={() => setCredentials(null)}>Close</Button>
