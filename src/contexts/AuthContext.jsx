@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { getFromStorage, setToStorage, getFromSessionStorage, setToSessionStorage, removeFromSessionStorage, STORAGE_KEYS } from '@/lib/storage';
 import { validatePassword } from '@/lib/validation';
+import { hashPasswordSync, verifyPasswordSync } from '@/lib/passwordUtils';
 
 const AuthContext = createContext(undefined);
 
@@ -8,7 +9,7 @@ const AuthContext = createContext(undefined);
 const DEFAULT_ADMIN = {
   id: 'admin-1',
   username: 'admin',
-  password: 'Admin123',
+  password: hashPasswordSync('Admin123'),
   role: 'administrator',
   firstName: 'System',
   lastName: 'Administrator',
@@ -24,6 +25,26 @@ export function AuthProvider({ children }) {
     const admin = getFromStorage(STORAGE_KEYS.ADMIN, null);
     if (!admin) {
       setToStorage(STORAGE_KEYS.ADMIN, DEFAULT_ADMIN);
+    } else if (!admin.password || admin.password === 'Admin123') {
+      // Migrate plaintext password to hashed
+      admin.password = hashPasswordSync('Admin123');
+      setToStorage(STORAGE_KEYS.ADMIN, admin);
+    }
+  }, []);
+
+  // Migrate any existing staff with plaintext passwords
+  useEffect(() => {
+    const staffList = getFromStorage(STORAGE_KEYS.STAFF, []);
+    let migrated = false;
+    staffList.forEach(s => {
+      if (s.password && s.password.length < 20) {
+        // Likely plaintext, hash it
+        s.password = hashPasswordSync(s.password);
+        migrated = true;
+      }
+    });
+    if (migrated) {
+      setToStorage(STORAGE_KEYS.STAFF, staffList);
     }
   }, []);
 
@@ -31,7 +52,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const session = getFromSessionStorage(STORAGE_KEYS.SESSION, null);
     if (session && new Date(session.expiresAt) > new Date()) {
-      // Restore user from session
       restoreUser(session);
     } else {
       removeFromSessionStorage(STORAGE_KEYS.SESSION);
@@ -90,7 +110,6 @@ export function AuthProvider({ children }) {
     setIsLoading(true);
     try {
       if (role === 'passenger') {
-        // Passenger login with identification + ticket
         const passengers = getFromStorage(STORAGE_KEYS.PASSENGERS, []);
         const passenger = passengers.find(
           p => p.identification === credentials.identification && p.ticketNumber === credentials.ticketNumber
@@ -103,7 +122,7 @@ export function AuthProvider({ children }) {
         const session = {
           userId: passenger.id,
           role: 'passenger',
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         };
         setToSessionStorage(STORAGE_KEYS.SESSION, session);
         
@@ -118,9 +137,9 @@ export function AuthProvider({ children }) {
         
         return { success: true };
       } else if (role === 'administrator') {
-        // Admin login
         const admin = getFromStorage(STORAGE_KEYS.ADMIN, DEFAULT_ADMIN);
-        if (credentials.username !== admin.username || credentials.password !== admin.password) {
+        const passwordMatch = verifyPasswordSync(credentials.password, admin.password);
+        if (credentials.username !== admin.username || !passwordMatch) {
           return { success: false, error: 'Invalid username or password' };
         }
 
@@ -142,10 +161,11 @@ export function AuthProvider({ children }) {
         
         return { success: true };
       } else {
-        // Staff login
         const staff = getFromStorage(STORAGE_KEYS.STAFF, []);
         const staffMember = staff.find(
-          s => s.username === credentials.username && s.password === credentials.password && s.staffType === role
+          s => s.username === credentials.username && 
+               verifyPasswordSync(credentials.password, s.password) && 
+               s.staffType === role
         );
         
         if (!staffMember) {
@@ -194,20 +214,20 @@ export function AuthProvider({ children }) {
 
     if (user.role === 'administrator') {
       const admin = getFromStorage(STORAGE_KEYS.ADMIN, DEFAULT_ADMIN);
-      if (admin.password !== currentPassword) {
+      if (!verifyPasswordSync(currentPassword, admin.password)) {
         return { success: false, error: 'Current password is incorrect' };
       }
-      admin.password = newPassword;
+      admin.password = hashPasswordSync(newPassword);
       admin.requiresPasswordChange = false;
       setToStorage(STORAGE_KEYS.ADMIN, admin);
       setUser({ ...user, requiresPasswordChange: false });
     } else if (user.role !== 'passenger') {
       const staff = getFromStorage(STORAGE_KEYS.STAFF, []);
       const staffIndex = staff.findIndex(s => s.id === user.id);
-      if (staffIndex === -1 || staff[staffIndex].password !== currentPassword) {
+      if (staffIndex === -1 || !verifyPasswordSync(currentPassword, staff[staffIndex].password)) {
         return { success: false, error: 'Current password is incorrect' };
       }
-      staff[staffIndex].password = newPassword;
+      staff[staffIndex].password = hashPasswordSync(newPassword);
       staff[staffIndex].requiresPasswordChange = false;
       setToStorage(STORAGE_KEYS.STAFF, staff);
       setUser({ ...user, requiresPasswordChange: false });

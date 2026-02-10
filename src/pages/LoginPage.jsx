@@ -241,11 +241,7 @@ export default function LoginPage() {
               )}
             </Button>
 
-            {userType === 'administrator' && (
-              <p className="text-center text-xs text-muted-foreground">
-                Default credentials: admin / Admin123
-              </p>
-            )}
+            {/* No credentials hint displayed for security */}
           </form>
         </CardContent>
       </Card>

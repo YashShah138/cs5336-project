@@ -9,12 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger 
 } from '@/components/ui/dropdown-menu';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Plane, User as UserIcon, LogOut, Key } from 'lucide-react';
+import { Plane, User as UserIcon, LogOut, Key, AlertTriangle } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { getPasswordStrengthErrors } from '@/lib/validation';
 
 const ROLE_LABELS = {
   administrator: 'Administrator',
@@ -35,6 +36,9 @@ export function Header() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Force password change modal if required
+  const forcePasswordChange = user?.requiresPasswordChange === true;
+
   const handleLogout = () => {
     logout();
     navigate('/login');
@@ -44,6 +48,12 @@ export function Header() {
   const handlePasswordChange = async () => {
     if (newPassword !== confirmPassword) {
       toast({ title: 'Passwords do not match', variant: 'destructive' });
+      return;
+    }
+
+    const errors = getPasswordStrengthErrors(newPassword);
+    if (errors.length > 0) {
+      toast({ title: 'Password requirements not met', description: errors.join(', '), variant: 'destructive' });
       return;
     }
 
@@ -128,10 +138,27 @@ export function Header() {
         </div>
       </header>
 
-      <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
-        <DialogContent>
+      {/* Password Change Dialog - forced on first login or manual */}
+      <Dialog 
+        open={showPasswordModal || forcePasswordChange} 
+        onOpenChange={(open) => {
+          // Don't allow closing if forced
+          if (!forcePasswordChange) {
+            setShowPasswordModal(open);
+          }
+        }}
+      >
+        <DialogContent onPointerDownOutside={forcePasswordChange ? (e) => e.preventDefault() : undefined}>
           <DialogHeader>
-            <DialogTitle>Change Password</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              {forcePasswordChange && <AlertTriangle className="h-5 w-5 text-warning" />}
+              {forcePasswordChange ? 'Password Change Required' : 'Change Password'}
+            </DialogTitle>
+            {forcePasswordChange && (
+              <DialogDescription>
+                You must change your password before continuing. This is required for all new accounts.
+              </DialogDescription>
+            )}
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
@@ -154,6 +181,13 @@ export function Header() {
               <p className="text-xs text-muted-foreground">
                 6+ characters, 1 uppercase, 1 lowercase, 1 number
               </p>
+              {newPassword && getPasswordStrengthErrors(newPassword).length > 0 && (
+                <ul className="text-xs text-destructive space-y-0.5">
+                  {getPasswordStrengthErrors(newPassword).map((err, i) => (
+                    <li key={i}>• {err}</li>
+                  ))}
+                </ul>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="confirm-password">Confirm New Password</Label>
@@ -163,12 +197,17 @@ export function Header() {
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
+              {confirmPassword && newPassword !== confirmPassword && (
+                <p className="text-xs text-destructive">Passwords do not match</p>
+              )}
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPasswordModal(false)}>
-              Cancel
-            </Button>
+            {!forcePasswordChange && (
+              <Button variant="outline" onClick={() => setShowPasswordModal(false)}>
+                Cancel
+              </Button>
+            )}
             <Button onClick={handlePasswordChange} disabled={isSubmitting}>
               {isSubmitting ? 'Changing...' : 'Change Password'}
             </Button>

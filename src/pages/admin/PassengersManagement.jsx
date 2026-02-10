@@ -407,7 +407,7 @@ export default function PassengersManagement() {
         open={!!deletePassengerId}
         onOpenChange={() => setDeletePassengerId(null)}
         title="Remove Passenger"
-        description="Are you sure you want to remove this passenger? This will also remove all associated bags."
+        description={`Are you sure you want to remove the passenger with the name "${(() => { const p = passengers.find(p => p.id === deletePassengerId); return p ? `${p.firstName} ${p.lastName}` : ''; })()}"? This will also remove all associated bags.`}
         confirmLabel="Remove Passenger"
         onConfirm={handleDeletePassenger}
         isDestructive

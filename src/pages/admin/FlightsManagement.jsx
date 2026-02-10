@@ -355,7 +355,7 @@ export default function FlightsManagement() {
         open={!!deleteFlightId}
         onOpenChange={() => setDeleteFlightId(null)}
         title="Remove Flight"
-        description="Are you sure you want to remove this flight? This will also remove all associated passengers and their bags."
+        description={`Are you sure you want to remove the flight "${(() => { const f = flights.find(f => f.id === deleteFlightId); return f ? `${f.airlineCode} ${f.flightNumber}` : ''; })()}"? This will also remove all associated passengers and their bags.`}
         confirmLabel="Remove Flight"
         onConfirm={handleDeleteFlight}
         isDestructive
