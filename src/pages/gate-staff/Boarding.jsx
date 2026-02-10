@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useOutletContext } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -8,21 +9,45 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { PassengerStatusBadge, BagLocationBadge } from '@/components/StatusBadges';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useToast } from '@/hooks/use-toast';
 import { validateTicketNumber } from '@/lib/validation';
-import { Search, UserCheck, Check, X, AlertCircle } from 'lucide-react';
+import { Search, UserCheck, Check, X, AlertCircle, Plane, Bell } from 'lucide-react';
 
 export default function Boarding() {
   const { user } = useAuth();
-  const { passengers, bags, flights, getPassengerByTicket, getFlightById, getBagsByPassenger, updatePassengerStatus } = useData();
+  const { selectedGate, selectedFlight } = useOutletContext();
+  const { passengers, bags, flights, getPassengerByTicket, getFlightById, getBagsByPassenger, getBagsByFlight, getPassengersByFlight, updatePassengerStatus, addMessage } = useData();
   const { toast } = useToast();
 
-  const staffUser = user;
-  const airlineCode = staffUser?.airlineCode;
+  const airlineCode = user?.airlineCode;
 
   const [ticketNumber, setTicketNumber] = useState('');
   const [foundPassenger, setFoundPassenger] = useState(undefined);
   const [searchError, setSearchError] = useState('');
+  const [notifyDeparture, setNotifyDeparture] = useState(false);
+
+  // Get passengers and bags for the selected flight/gate
+  const gatePassengers = useMemo(() => {
+    if (!selectedFlight) return [];
+    return getPassengersByFlight(selectedFlight.id);
+  }, [selectedFlight, passengers]);
+
+  const gateBags = useMemo(() => {
+    if (!selectedFlight) return [];
+    return getBagsByFlight(selectedFlight.id);
+  }, [selectedFlight, bags]);
+
+  const gateStats = useMemo(() => {
+    const total = gatePassengers.length;
+    const boarded = gatePassengers.filter(p => p.status === 'boarded').length;
+    const totalBags = gateBags.length;
+    const loadedBags = gateBags.filter(b => b.location === 'loaded').length;
+    const allBoarded = boarded === total && total > 0;
+    const allLoaded = loadedBags === totalBags;
+    const isReady = allBoarded && allLoaded;
+    return { total, boarded, totalBags, loadedBags, isReady };
+  }, [gatePassengers, gateBags]);
 
   const handleSearch = () => {
     setSearchError('');
@@ -42,6 +67,11 @@ export default function Boarding() {
     const flight = getFlightById(passenger.flightId);
     if (!flight || flight.airlineCode !== airlineCode) {
       setSearchError('Passenger is not on your airline');
+      return;
+    }
+
+    if (flight.gate !== selectedGate) {
+      setSearchError(`Passenger is assigned to gate ${flight.gate}, not your gate (${selectedGate})`);
       return;
     }
 
@@ -67,16 +97,125 @@ export default function Boarding() {
     setFoundPassenger(undefined);
   };
 
+  const handleNotifyDeparture = () => {
+    if (!selectedFlight) return;
+
+    addMessage({
+      boardType: 'admin',
+      senderName: `${user.firstName} ${user.lastName}`,
+      senderRole: 'gate_staff',
+      airlineCode: airlineCode,
+      content: `Flight ${selectedFlight.airlineCode}${selectedFlight.flightNumber} at Gate ${selectedGate} is ready for departure. All ${gateStats.total} passengers boarded, all ${gateStats.totalBags} bags loaded.`,
+    });
+
+    toast({
+      title: 'Admin notified',
+      description: `Departure notification sent for flight ${selectedFlight.airlineCode}${selectedFlight.flightNumber}`,
+      className: 'bg-success text-success-foreground'
+    });
+
+    setNotifyDeparture(false);
+  };
+
   const flight = foundPassenger ? getFlightById(foundPassenger.flightId) : null;
 
   return (
     <div className="space-y-6">
-      {/* Search Card */}
+      {/* Gate Info Card */}
+      {selectedFlight && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span className="flex items-center gap-2">
+                <Plane className="h-5 w-5" />
+                Gate {selectedGate} — Flight {selectedFlight.airlineCode} {selectedFlight.flightNumber}
+              </span>
+              {gateStats.isReady && (
+                <Button 
+                  variant="default" 
+                  size="sm"
+                  onClick={() => setNotifyDeparture(true)}
+                  className="bg-success hover:bg-success/90 text-success-foreground"
+                >
+                  <Bell className="mr-2 h-4 w-4" />
+                  Inform Admin — Ready for Departure
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Terminal</p>
+                <p className="font-medium text-lg">{selectedFlight.terminal}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Gate</p>
+                <p className="font-medium text-lg">{selectedFlight.gate}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Passengers Boarded</p>
+                <p className="font-medium text-lg">{gateStats.boarded} / {gateStats.total}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Bags Loaded</p>
+                <p className="font-medium text-lg">{gateStats.loadedBags} / {gateStats.totalBags}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!selectedFlight && (
+        <Card>
+          <CardContent className="py-8 text-center text-muted-foreground">
+            No flight is currently assigned to Gate {selectedGate}.
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Passenger Manifest */}
+      {selectedFlight && gatePassengers.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Passenger Manifest ({gatePassengers.length})</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Ticket</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Bags</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {gatePassengers.map((p) => {
+                    const pBags = getBagsByPassenger(p.id);
+                    return (
+                      <TableRow key={p.id}>
+                        <TableCell>{p.firstName} {p.lastName}</TableCell>
+                        <TableCell>{p.ticketNumber}</TableCell>
+                        <TableCell><PassengerStatusBadge status={p.status} /></TableCell>
+                        <TableCell>{pBags.length}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Search & Board Card */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Search className="h-5 w-5" />
-            Search Passenger for Boarding
+            Board a Passenger
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -102,7 +241,7 @@ export default function Boarding() {
         </CardContent>
       </Card>
 
-      {/* Passenger Details & Boarding */}
+      {/* Found Passenger Details */}
       {foundPassenger && (
         <Card>
           <CardHeader>
@@ -112,7 +251,6 @@ export default function Boarding() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Passenger Info */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div>
                 <p className="text-sm text-muted-foreground">Name</p>
@@ -132,7 +270,6 @@ export default function Boarding() {
               </div>
             </div>
 
-            {/* Bags Verification */}
             <div className="space-y-3">
               <h4 className="font-medium">Bags Verification ({passengerBags.length})</h4>
               {passengerBags.length === 0 ? (
@@ -174,7 +311,6 @@ export default function Boarding() {
               )}
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3 pt-4 border-t">
               {canBoard ? (
                 <Button onClick={handleBoard}>
@@ -207,6 +343,16 @@ export default function Boarding() {
           </CardContent>
         </Card>
       )}
+
+      {/* Notify Departure Confirmation */}
+      <ConfirmDialog
+        open={notifyDeparture}
+        onOpenChange={() => setNotifyDeparture(false)}
+        title="Notify Departure"
+        description={`All ${gateStats.total} passengers boarded and all ${gateStats.totalBags} bags loaded. Inform admin that flight ${selectedFlight?.airlineCode}${selectedFlight?.flightNumber} is ready for departure?`}
+        confirmLabel="Notify Admin"
+        onConfirm={handleNotifyDeparture}
+      />
     </div>
   );
 }
