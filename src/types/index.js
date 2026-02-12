@@ -24,13 +24,15 @@ export const STATUS_COLORS = {
 export const BAG_LOCATION_COLORS = {
   check_in: 'bg-destructive text-destructive-foreground',
   security: 'bg-warning text-warning-foreground',
+  security_violation: 'bg-destructive text-destructive-foreground',
   gate: 'bg-success text-success-foreground',
   loaded: 'bg-primary text-primary-foreground',
 };
 
 export const BAG_LOCATION_LABELS = {
   check_in: 'Check-In',
-  security: 'Security',
+  security: 'Security Check',
+  security_violation: 'Security Violation',
   gate: 'Gate',
   loaded: 'Loaded',
 };

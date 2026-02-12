@@ -2,12 +2,13 @@ import React from 'react';
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { cn } from '@/lib/utils';
-import { Plane, Users, UserCog } from 'lucide-react';
+import { Plane, Users, UserCog, MessageSquare } from 'lucide-react';
 
 const navItems = [
   { path: '/admin/flights', label: 'Flights Management', icon: Plane },
   { path: '/admin/passengers', label: 'Passengers Management', icon: Users },
   { path: '/admin/staff', label: 'Staff Management', icon: UserCog },
+  { path: '/admin/messages', label: 'Messages', icon: MessageSquare },
 ];
 
 export default function AdminDashboard() {
@@ -21,7 +22,6 @@ export default function AdminDashboard() {
           <p className="text-muted-foreground">Manage flights, passengers, and staff</p>
         </div>
 
-        {/* Navigation Tabs */}
         <nav className="flex gap-2 border-b pb-2 overflow-x-auto">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || 
@@ -44,7 +44,6 @@ export default function AdminDashboard() {
           })}
         </nav>
 
-        {/* Content Area */}
         <Outlet />
       </div>
     </DashboardLayout>

@@ -13,6 +13,7 @@ import AdminDashboard from "@/pages/admin/AdminDashboard";
 import FlightsManagement from "@/pages/admin/FlightsManagement";
 import PassengersManagement from "@/pages/admin/PassengersManagement";
 import StaffManagement from "@/pages/admin/StaffManagement";
+import AdminMessages from "@/pages/admin/AdminMessages";
 import AirlineStaffDashboard from "@/pages/airline-staff/AirlineStaffDashboard";
 import CheckIn from "@/pages/airline-staff/CheckIn";
 import BagsManagement from "@/pages/airline-staff/BagsManagement";
@@ -49,6 +50,7 @@ const App = () => (
                   <Route path="flights" element={<FlightsManagement />} />
                   <Route path="passengers" element={<PassengersManagement />} />
                   <Route path="staff" element={<StaffManagement />} />
+                  <Route path="messages" element={<AdminMessages />} />
                 </Route>
                 <Route path="/airline-staff" element={<ProtectedRoute allowedRoles={['airline_staff']}><AirlineStaffDashboard /></ProtectedRoute>}>
                   <Route index element={<Navigate to="check-in" replace />} />

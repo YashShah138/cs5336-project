@@ -14,7 +14,7 @@ import { ShieldCheck, Check, AlertTriangle } from 'lucide-react';
 
 export default function SecurityClearance() {
   const { user } = useAuth();
-  const { bags, passengers, flights, getPassengerById, getFlightById, updateBagLocation, addIssue } = useData();
+  const { bags, passengers, flights, getPassengerById, getFlightById, updateBagLocation, addMessage } = useData();
   const { toast } = useToast();
 
   const staffUser = user;
@@ -23,10 +23,23 @@ export default function SecurityClearance() {
   const [reportBag, setReportBag] = useState(null);
   const [violationDescription, setViolationDescription] = useState('');
 
-  // Bags at check-in or security
+  // Bags at check-in (queue) or security
   const pendingBags = useMemo(() => {
     return bags.filter(b => b.location === 'check_in' || b.location === 'security');
   }, [bags]);
+
+  const handleMoveTosecurity = (bagId) => {
+    const bag = bags.find(b => b.id === bagId);
+    if (!bag) return;
+    if (bag.location === 'check_in') {
+      updateBagLocation(bag.id, 'security', undefined, `${staffUser.firstName} ${staffUser.lastName}`);
+      toast({
+        title: 'Bag moved to security check',
+        description: `Bag ${bag.bagId} is now at security check`,
+        className: 'bg-success text-success-foreground'
+      });
+    }
+  };
 
   const handleClearSecurity = () => {
     if (!clearBagId) return;
@@ -39,7 +52,7 @@ export default function SecurityClearance() {
 
     toast({
       title: 'Bag cleared for gate',
-      description: `Bag ${bag.bagId} cleared security and moved to gate`,
+      description: `Bag ${bag.bagId} cleared security and moved to gate ${flight?.gate || ''}`,
       className: 'bg-success text-success-foreground'
     });
 
@@ -52,17 +65,29 @@ export default function SecurityClearance() {
     const bag = bags.find(b => b.id === reportBag);
     if (!bag) return;
 
-    addIssue({
-      type: 'security_violation',
-      description: violationDescription,
+    const passenger = getPassengerById(bag.passengerId);
+    const flight = getFlightById(bag.flightId);
+
+    // Update bag location to security_violation
+    updateBagLocation(bag.id, 'security_violation', undefined, `${staffUser.firstName} ${staffUser.lastName}`);
+
+    // Send message to airline staff message board
+    addMessage({
+      boardType: 'airline',
+      senderName: `${staffUser.firstName} ${staffUser.lastName}`,
+      senderRole: 'ground_staff',
+      airlineCode: flight?.airlineCode,
+      messageType: 'security_violation',
       bagId: bag.bagId,
       passengerId: bag.passengerId,
-      reportedBy: `${staffUser.firstName} ${staffUser.lastName}`,
+      passengerName: passenger ? `${passenger.firstName} ${passenger.lastName}` : 'Unknown',
+      flightInfo: flight ? `${flight.airlineCode}${flight.flightNumber}` : '',
+      content: `SECURITY VIOLATION: Bag ${bag.bagId} belonging to passenger ${passenger ? `${passenger.firstName} ${passenger.lastName}` : 'Unknown'} (Ticket: ${passenger?.ticketNumber || ''}) on flight ${flight ? `${flight.airlineCode}${flight.flightNumber}` : ''}. Violation: ${violationDescription}. ACTION REQUIRED: Remove all bags of this passenger and inform administrator to remove passenger.`,
     });
 
     toast({
       title: 'Security violation reported',
-      description: 'The incident has been logged',
+      description: 'Message sent to airline staff message board',
       className: 'bg-warning text-warning-foreground'
     });
 
@@ -87,7 +112,6 @@ export default function SecurityClearance() {
                   <TableHead>Bag ID</TableHead>
                   <TableHead>Ticket</TableHead>
                   <TableHead>Passenger</TableHead>
-                  <TableHead>Airline</TableHead>
                   <TableHead>Flight</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
@@ -96,7 +120,7 @@ export default function SecurityClearance() {
               <TableBody>
                 {pendingBags.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
                       No bags pending security clearance
                     </TableCell>
                   </TableRow>
@@ -104,34 +128,49 @@ export default function SecurityClearance() {
                   pendingBags.map((bag) => {
                     const passenger = getPassengerById(bag.passengerId);
                     const flight = getFlightById(bag.flightId);
+                    const isAtCheckIn = bag.location === 'check_in';
+                    const isAtSecurity = bag.location === 'security';
                     return (
                       <TableRow key={bag.id}>
                         <TableCell className="font-mono">{bag.bagId}</TableCell>
                         <TableCell>{passenger?.ticketNumber}</TableCell>
                         <TableCell>{passenger ? `${passenger.firstName} ${passenger.lastName}` : '-'}</TableCell>
-                        <TableCell>{flight?.airlineCode}</TableCell>
-                        <TableCell>{flight?.flightNumber}</TableCell>
+                        <TableCell>{flight ? `${flight.airlineCode}${flight.flightNumber}` : '-'}</TableCell>
                         <TableCell><BagLocationBadge location={bag.location} /></TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => setClearBagId(bag.id)}
-                              className="text-success hover:text-success"
-                              title="Clear Security"
-                            >
-                              <Check className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              onClick={() => setReportBag(bag.id)}
-                              className="text-warning hover:text-warning"
-                              title="Report Violation"
-                            >
-                              <AlertTriangle className="h-4 w-4" />
-                            </Button>
+                            {isAtCheckIn && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => handleMoveTosecurity(bag.id)}
+                                title="Move to Security Check"
+                              >
+                                Move to Security
+                              </Button>
+                            )}
+                            {isAtSecurity && (
+                              <>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => setClearBagId(bag.id)}
+                                  className="text-success hover:text-success"
+                                  title="Clear Security"
+                                >
+                                  <Check className="h-4 w-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon" 
+                                  onClick={() => setReportBag(bag.id)}
+                                  className="text-warning hover:text-warning"
+                                  title="Report Violation"
+                                >
+                                  <AlertTriangle className="h-4 w-4" />
+                                </Button>
+                              </>
+                            )}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -161,8 +200,12 @@ export default function SecurityClearance() {
             <DialogTitle>Report Security Violation</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              This will send a message to the airline staff message board. The airline staff will then remove all bags 
+              of this passenger and inform the administrator to remove the passenger from the system.
+            </p>
             <div className="space-y-2">
-              <Label>Description</Label>
+              <Label>Violation Description</Label>
               <Textarea
                 placeholder="Describe the security violation..."
                 value={violationDescription}
@@ -173,7 +216,7 @@ export default function SecurityClearance() {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setReportBag(null)}>Cancel</Button>
-            <Button variant="destructive" onClick={handleReportViolation}>
+            <Button variant="destructive" onClick={handleReportViolation} disabled={!violationDescription.trim()}>
               Submit Report
             </Button>
           </DialogFooter>
