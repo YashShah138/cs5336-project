@@ -105,7 +105,9 @@ export default function Boarding() {
       senderName: `${user.firstName} ${user.lastName}`,
       senderRole: 'gate_staff',
       airlineCode: airlineCode,
-      content: `Flight ${selectedFlight.airlineCode}${selectedFlight.flightNumber} at Gate ${selectedGate} is ready for departure. All ${gateStats.total} passengers boarded, all ${gateStats.totalBags} bags loaded.`,
+      messageType: 'departure_ready',
+      flightId: selectedFlight.id,
+      content: `Flight ${selectedFlight.airlineCode}${selectedFlight.flightNumber} at Gate ${selectedGate} is ready for departure. All ${gateStats.total} passengers boarded, all ${gateStats.totalBags} bags loaded. Destination: ${selectedFlight.destination || 'N/A'}.`,
     });
 
     toast({

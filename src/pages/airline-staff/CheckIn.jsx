@@ -16,7 +16,7 @@ import { Search, Briefcase, AlertTriangle, Check, X } from 'lucide-react';
 
 export default function CheckIn() {
   const { user } = useAuth();
-  const { passengers, flights, bags, getPassengerByTicket, getFlightById, addBag, updatePassengerStatus, addIssue } = useData();
+  const { passengers, flights, bags, getPassengerByTicket, getFlightById, addBag, updatePassengerStatus, addMessage, getBagsByPassenger, removeBag } = useData();
   const { toast } = useToast();
 
   const staffUser = user;
@@ -131,16 +131,25 @@ export default function CheckIn() {
   const handleReportIssue = () => {
     if (!foundPassenger || !issueDescription.trim()) return;
 
-    addIssue({
-      type: issueType,
-      description: issueDescription,
+    // Remove all bags of this passenger
+    const passengerBags = getBagsByPassenger(foundPassenger.id);
+    passengerBags.forEach(bag => removeBag(bag.id));
+
+    // Send message to admin to remove passenger
+    addMessage({
+      boardType: 'admin',
+      senderName: `${staffUser.firstName} ${staffUser.lastName}`,
+      senderRole: 'airline_staff',
+      airlineCode: staffUser.airlineCode,
+      messageType: 'remove_passenger',
       passengerId: foundPassenger.id,
-      reportedBy: `${staffUser.firstName} ${staffUser.lastName}`,
+      passengerName: `${foundPassenger.firstName} ${foundPassenger.lastName}`,
+      content: `REQUEST: Please remove passenger ${foundPassenger.firstName} ${foundPassenger.lastName} (Ticket: ${foundPassenger.ticketNumber}) from the system. Reason: ${issueType === 'security_violation' ? 'Security Violation' : 'Issue at Check-in Counter'}. Details: ${issueDescription}`,
     });
 
     toast({ 
       title: 'Issue reported', 
-      description: issueType === 'security_violation' ? 'Security has been notified' : 'Passenger flagged for removal',
+      description: 'Bags removed and admin notified to remove passenger',
       className: 'bg-warning text-warning-foreground'
     });
 

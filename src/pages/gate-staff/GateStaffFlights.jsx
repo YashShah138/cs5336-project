@@ -1,19 +1,28 @@
-import React, { useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { useData } from '@/contexts/DataContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { PassengerStatusBadge, BagLocationBadge } from '@/components/StatusBadges';
-import { Plane } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { PassengerStatusBadge } from '@/components/StatusBadges';
+import { useToast } from '@/hooks/use-toast';
+import { Plane, Edit } from 'lucide-react';
 
 export default function GateStaffFlights() {
   const { user } = useAuth();
   const { selectedGate, selectedFlight } = useOutletContext();
-  const { flights, passengers, bags, getPassengersByFlight, getBagsByFlight, getBagsByPassenger } = useData();
+  const { flights, passengers, bags, getPassengersByFlight, getBagsByFlight, updateFlightGate, addMessage } = useData();
+  const { toast } = useToast();
 
   const airlineCode = user?.airlineCode;
+  const [changeGateFlight, setChangeGateFlight] = useState(null);
+  const [newGate, setNewGate] = useState('');
+  const [newTerminal, setNewTerminal] = useState('');
 
   const myFlights = useMemo(() => {
     return flights.filter(f => f.airlineCode === airlineCode);
@@ -50,6 +59,40 @@ export default function GateStaffFlights() {
     }
   };
 
+  const handleChangeGate = () => {
+    if (!changeGateFlight || !newGate.trim()) return;
+
+    // Check gate not already occupied
+    const gateOccupied = flights.some(f => f.id !== changeGateFlight.id && f.gate === newGate.toUpperCase() && f.terminal === (newTerminal.toUpperCase() || changeGateFlight.terminal));
+    if (gateOccupied) {
+      toast({ title: 'Gate already occupied by another flight', variant: 'destructive' });
+      return;
+    }
+
+    const oldGate = changeGateFlight.gate;
+    updateFlightGate(changeGateFlight.id, newTerminal.toUpperCase() || changeGateFlight.terminal, newGate.toUpperCase());
+
+    // Notify ground staff via message board
+    addMessage({
+      boardType: 'ground',
+      senderName: `${user.firstName} ${user.lastName}`,
+      senderRole: 'gate_staff',
+      airlineCode: airlineCode,
+      messageType: 'gate_change',
+      content: `GATE CHANGE: Flight ${changeGateFlight.airlineCode}${changeGateFlight.flightNumber} has been moved from Gate ${oldGate} to Gate ${newGate.toUpperCase()}. Please redirect bags accordingly.`,
+    });
+
+    toast({ 
+      title: 'Gate changed', 
+      description: `Flight ${changeGateFlight.airlineCode}${changeGateFlight.flightNumber} moved to Gate ${newGate.toUpperCase()}. Ground staff notified.`,
+      className: 'bg-success text-success-foreground' 
+    });
+
+    setChangeGateFlight(null);
+    setNewGate('');
+    setNewTerminal('');
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -64,18 +107,20 @@ export default function GateStaffFlights() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Flight Number</TableHead>
+                  <TableHead>Flight</TableHead>
+                  <TableHead>Destination</TableHead>
                   <TableHead>Terminal</TableHead>
                   <TableHead>Gate</TableHead>
                   <TableHead>Passengers</TableHead>
                   <TableHead>Bags</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {myFlights.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No flights found for your airline
                     </TableCell>
                   </TableRow>
@@ -86,14 +131,25 @@ export default function GateStaffFlights() {
                     return (
                       <TableRow key={flight.id} className={isCurrentGate ? 'bg-primary/5' : ''}>
                         <TableCell className="font-medium">
-                          {flight.airlineCode} {flight.flightNumber}
+                          {flight.airlineCode}{flight.flightNumber}
                           {isCurrentGate && <Badge variant="outline" className="ml-2 text-xs">Your Gate</Badge>}
                         </TableCell>
+                        <TableCell>{flight.destination || '-'}</TableCell>
                         <TableCell>{flight.terminal}</TableCell>
                         <TableCell>{flight.gate}</TableCell>
                         <TableCell>{stats.boarded}/{stats.total} boarded</TableCell>
                         <TableCell>{stats.loadedBags}/{stats.totalBags} loaded</TableCell>
                         <TableCell>{getStatusBadge(stats.status)}</TableCell>
+                        <TableCell className="text-right">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => { setChangeGateFlight(flight); setNewGate(''); setNewTerminal(flight.terminal); }}
+                          >
+                            <Edit className="mr-1 h-4 w-4" />
+                            Change Gate
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })
@@ -103,6 +159,33 @@ export default function GateStaffFlights() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Change Gate Dialog */}
+      <Dialog open={!!changeGateFlight} onOpenChange={() => setChangeGateFlight(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Gate — {changeGateFlight?.airlineCode}{changeGateFlight?.flightNumber}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <p className="text-sm text-muted-foreground">
+              Current: Terminal {changeGateFlight?.terminal}, Gate {changeGateFlight?.gate}
+            </p>
+            <div className="space-y-2">
+              <Label>New Terminal</Label>
+              <Input value={newTerminal} onChange={(e) => setNewTerminal(e.target.value)} placeholder="e.g., B" />
+            </div>
+            <div className="space-y-2">
+              <Label>New Gate</Label>
+              <Input value={newGate} onChange={(e) => setNewGate(e.target.value)} placeholder="e.g., B5" />
+            </div>
+            <p className="text-xs text-muted-foreground">Ground staff will be notified of this gate change.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setChangeGateFlight(null)}>Cancel</Button>
+            <Button onClick={handleChangeGate} disabled={!newGate.trim()}>Change Gate</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

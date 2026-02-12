@@ -58,6 +58,12 @@ export function DataProvider({ children }) {
     setToStorage(STORAGE_KEYS.BAGS, remainingBags);
   }, [flights, passengers, bags]);
 
+  const updateFlightGate = useCallback((id, terminal, gate) => {
+    const updated = flights.map(f => f.id === id ? { ...f, terminal, gate } : f);
+    setFlights(updated);
+    setToStorage(STORAGE_KEYS.FLIGHTS, updated);
+  }, [flights]);
+
   const getFlightById = useCallback((id) => flights.find(f => f.id === id), [flights]);
   const getFlightsByAirline = useCallback((airlineCode) => flights.filter(f => f.airlineCode === airlineCode), [flights]);
 
@@ -129,6 +135,12 @@ export function DataProvider({ children }) {
     setToStorage(STORAGE_KEYS.BAGS, updated);
   }, [bags]);
 
+  const removeBag = useCallback((id) => {
+    const updated = bags.filter(b => b.id !== id);
+    setBags(updated);
+    setToStorage(STORAGE_KEYS.BAGS, updated);
+  }, [bags]);
+
   const getBagById = useCallback((bagId) => bags.find(b => b.bagId === bagId), [bags]);
   const getBagsByPassenger = useCallback((passengerId) => bags.filter(b => b.passengerId === passengerId), [bags]);
   const getBagsByFlight = useCallback((flightId) => bags.filter(b => b.flightId === flightId), [bags]);
@@ -194,9 +206,9 @@ export function DataProvider({ children }) {
 
   return (
     <DataContext.Provider value={{
-      flights, addFlight, removeFlight, getFlightById, getFlightsByAirline,
+      flights, addFlight, removeFlight, updateFlightGate, getFlightById, getFlightsByAirline,
       passengers, addPassenger, removePassenger, updatePassengerStatus, getPassengerById, getPassengerByTicket, getPassengersByFlight,
-      bags, addBag, updateBagLocation, getBagById, getBagsByPassenger, getBagsByFlight, getBagsByLocation,
+      bags, addBag, removeBag, updateBagLocation, getBagById, getBagsByPassenger, getBagsByFlight, getBagsByLocation,
       staff, addStaff, removeStaff, getStaffByType,
       messages, addMessage, getMessagesByBoard,
       issues, addIssue,

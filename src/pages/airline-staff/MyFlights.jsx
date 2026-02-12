@@ -45,7 +45,8 @@ export default function MyFlights() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Flight Number</TableHead>
+                  <TableHead>Flight</TableHead>
+                  <TableHead>Destination</TableHead>
                   <TableHead>Terminal</TableHead>
                   <TableHead>Gate</TableHead>
                   <TableHead>Total Passengers</TableHead>
@@ -57,7 +58,7 @@ export default function MyFlights() {
               <TableBody>
                 {myFlights.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No flights found for your airline
                     </TableCell>
                   </TableRow>
@@ -66,7 +67,8 @@ export default function MyFlights() {
                     const stats = getFlightStats(flight.id);
                     return (
                       <TableRow key={flight.id}>
-                        <TableCell className="font-medium">{flight.airlineCode} {flight.flightNumber}</TableCell>
+                        <TableCell className="font-medium">{flight.airlineCode}{flight.flightNumber}</TableCell>
+                        <TableCell>{flight.destination || '-'}</TableCell>
                         <TableCell>{flight.terminal}</TableCell>
                         <TableCell>{flight.gate}</TableCell>
                         <TableCell>{stats.total}</TableCell>
@@ -92,11 +94,19 @@ export default function MyFlights() {
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Flight: {viewFlightData?.airlineCode} {viewFlightData?.flightNumber}
+              Flight: {viewFlightData?.airlineCode}{viewFlightData?.flightNumber}
             </DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-muted-foreground">Airline</p>
+                <p className="font-medium">{viewFlightData?.airlineName || viewFlightData?.airlineCode}</p>
+              </div>
+              <div>
+                <p className="text-muted-foreground">Destination</p>
+                <p className="font-medium">{viewFlightData?.destination || '-'}</p>
+              </div>
               <div>
                 <p className="text-muted-foreground">Terminal</p>
                 <p className="font-medium">{viewFlightData?.terminal}</p>
