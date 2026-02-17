@@ -46,4 +46,4 @@ This project is built with:
 | Airline Staff | airline01 |Test1234 |
 | Gate Staff | gate01 | Test1234 |
 | Ground Staff | ground01 | Test1234 |
-| Passenger | ID: 123456 | Ticket: 1234567890	 |
+| Passenger | ID: 123456 | Ticket: 1234567890 |
