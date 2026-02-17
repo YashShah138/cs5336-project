@@ -8,8 +8,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { useToast } from '@/hooks/use-toast';
-import { Plane, User, Users, Briefcase, ShieldCheck, Loader2 } from 'lucide-react';
+import { Plane, User, Users, Briefcase, ShieldCheck, Loader2, Database } from 'lucide-react';
 import { validateIdentification, validateTicketNumber } from '@/lib/validation';
+import { seedTestData } from '@/lib/seedTestData';
 
 const userTypeOptions = [
   { value: 'administrator', label: 'Administrator', icon: <ShieldCheck className="h-5 w-5" />, description: 'System administration' },
@@ -31,6 +32,17 @@ export default function LoginPage() {
   const [ticketNumber, setTicketNumber] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [testCredentials, setTestCredentials] = useState(null);
+
+  const handleLoadTestData = () => {
+    const creds = seedTestData();
+    setTestCredentials(creds);
+    toast({
+      title: 'Test data loaded',
+      description: 'Test accounts created for all roles. See credentials below.',
+      className: 'bg-success text-success-foreground',
+    });
+  };
 
   const validateForm = () => {
     const newErrors = {};
@@ -241,7 +253,28 @@ export default function LoginPage() {
               )}
             </Button>
 
-            {/* No credentials hint displayed for security */}
+            {/* Test Data Loader */}
+            <div className="border-t pt-4 mt-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                onClick={handleLoadTestData}
+              >
+                <Database className="mr-2 h-4 w-4" />
+                Load Test Data
+              </Button>
+              {testCredentials && (
+                <div className="mt-3 rounded-lg border bg-muted/50 p-3 text-xs space-y-1.5">
+                  <p className="font-semibold text-sm mb-2">Test Credentials:</p>
+                  <p><span className="font-medium">Admin:</span> {testCredentials.admin.username} / {testCredentials.admin.password}</p>
+                  <p><span className="font-medium">Airline Staff:</span> {testCredentials.airline_staff.username} / {testCredentials.airline_staff.password}</p>
+                  <p><span className="font-medium">Gate Staff:</span> {testCredentials.gate_staff.username} / {testCredentials.gate_staff.password}</p>
+                  <p><span className="font-medium">Ground Staff:</span> {testCredentials.ground_staff.username} / {testCredentials.ground_staff.password}</p>
+                  <p><span className="font-medium">Passenger:</span> ID: {testCredentials.passenger.identification} / Ticket: {testCredentials.passenger.ticketNumber}</p>
+                </div>
+              )}
+            </div>
           </form>
         </CardContent>
       </Card>
