@@ -148,7 +148,7 @@ export function DataProvider({ children }) {
 
   // Staff - password is hashed before storage
   const addStaff = useCallback((staffData) => {
-    const username = generateUsername();
+    const username = generateUsername(staffData.lastName);
     const plainPassword = generatePassword();
     const newStaff = {
       ...staffData,
