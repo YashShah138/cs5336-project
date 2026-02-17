@@ -37,3 +37,13 @@ This project is built with:
 - React
 - shadcn-ui
 - Tailwind CSS
+
+
+## Test Login Info
+| Role | Username | Password |
+| ---- | -------- | -------- |
+| Admin | admin | Admin123 |
+| Airline Staff | airline01 |Test1234 |
+| Gate Staff | gate01 | Test1234 |
+| Ground Staff | ground01 | Test1234 |
+| Passenger | ID: 123456 | Ticket: 1234567890	 |
