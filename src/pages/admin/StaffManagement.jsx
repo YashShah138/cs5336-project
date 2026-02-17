@@ -84,6 +84,19 @@ export default function StaffManagement() {
       airlineCode: requiresAirline ? airlineCode.toUpperCase() : undefined,
     });
 
+    // Open mailto link to send credentials via email
+    const subject = encodeURIComponent('Your Airport Luggage System Account');
+    const body = encodeURIComponent(
+      `Hello ${firstName} ${lastName},\n\n` +
+      `Your account has been created for the Airport Luggage System.\n\n` +
+      `Role: ${STAFF_TYPE_LABELS[currentTab]}\n` +
+      `Username: ${result.username}\n` +
+      `Password: ${result.password}\n\n` +
+      `Please log in and change your password immediately.\n\n` +
+      `Regards,\nAirport Luggage System Administration`
+    );
+    window.open(`mailto:${email}?subject=${subject}&body=${body}`, '_blank');
+
     setCredentials({ email });
     toast({ title: 'Staff member added successfully', className: 'bg-success text-success-foreground' });
     
