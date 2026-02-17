@@ -12,7 +12,7 @@ export const VALIDATION_PATTERNS = {
   email: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
   phone: /^[1-9]\d{9}$/,
   password: /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{6,}$/,
-  username: /^[A-Za-z]{2}\d{2}$/,
+  username: /^[a-zA-Z]{2,}\d{2}$/,
 };
 
 export const STATUS_COLORS = {
