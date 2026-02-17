@@ -254,8 +254,13 @@ export default function StaffManagement() {
         </TabsContent>
       </Tabs>
 
+<<<<<<< Updated upstream
       {/* Credentials Sent Confirmation Modal */}
       <Dialog open={!!credentials} onOpenChange={() => setCredentials(null)}>
+=======
+      {/* Credentials Modal */}
+      {/* <Dialog open={!!credentials} onOpenChange={() => setCredentials(null)}>
+>>>>>>> Stashed changes
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Staff Account Created</DialogTitle>
@@ -278,7 +283,7 @@ export default function StaffManagement() {
             <Button onClick={() => setCredentials(null)}>Close</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
 
       {/* Delete Confirmation */}
       <ConfirmDialog
