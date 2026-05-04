@@ -86,77 +86,77 @@ export default function CheckIn() {
     setBagDetails(updated);
   };
 
-  const handleCheckIn = () => {
+  const handleCheckIn = async () => {
     if (!foundPassenger) return;
 
-    // Validate counters
     if (bagDetails.some(b => !b.counter.trim())) {
       toast({ title: 'Please enter counter number for all bags', variant: 'destructive' });
       return;
     }
 
     setIsProcessing(true);
+    try {
+      const flight = getFlightById(foundPassenger.flightId);
 
-    const flight = getFlightById(foundPassenger.flightId);
-    
-    // Add bags
-    bagDetails.forEach((bag) => {
-      addBag({
-        bagId: bag.bagId,
-        passengerId: foundPassenger.id,
-        flightId: foundPassenger.flightId,
-        location: 'check_in',
-        terminal: flight?.terminal || '',
-        counterNumber: bag.counter,
+      await Promise.all(bagDetails.map((bag) =>
+        addBag({
+          bagId: bag.bagId,
+          passengerId: foundPassenger.id,
+          flightId: foundPassenger.flightId,
+          location: 'check_in',
+          terminal: flight?.terminal || '',
+          counterNumber: bag.counter,
+        })
+      ));
+
+      await updatePassengerStatus(foundPassenger.id, 'checked_in');
+
+      toast({
+        title: 'Check-in complete',
+        description: `${foundPassenger.firstName} ${foundPassenger.lastName} checked in with ${bagCount} bag(s)`,
+        className: 'bg-success text-success-foreground',
       });
-    });
 
-    // Update passenger status
-    updatePassengerStatus(foundPassenger.id, 'checked_in');
-
-    toast({ 
-      title: 'Check-in complete', 
-      description: `${foundPassenger.firstName} ${foundPassenger.lastName} checked in with ${bagCount} bag(s)`,
-      className: 'bg-success text-success-foreground'
-    });
-
-    // Reset
-    setTicketNumber('');
-    setFoundPassenger(undefined);
-    setBagCount(0);
-    setBagDetails([]);
-    setIsProcessing(false);
+      setTicketNumber('');
+      setFoundPassenger(undefined);
+      setBagCount(0);
+      setBagDetails([]);
+    } catch (err) {
+      toast({ title: err.message || 'Check-in failed', variant: 'destructive' });
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
-  const handleReportIssue = () => {
+  const handleReportIssue = async () => {
     if (!foundPassenger || !issueDescription.trim()) return;
 
-    // Remove all bags of this passenger
-    const passengerBags = getBagsByPassenger(foundPassenger.id);
-    passengerBags.forEach(bag => removeBag(bag.id));
+    try {
+      const passengerBags = getBagsByPassenger(foundPassenger.id);
+      await Promise.all(passengerBags.map(bag => removeBag(bag.id)));
 
-    // Send message to admin to remove passenger
-    addMessage({
-      boardType: 'admin',
-      senderName: `${staffUser.firstName} ${staffUser.lastName}`,
-      senderRole: 'airline_staff',
-      airlineCode: staffUser.airlineCode,
-      messageType: 'remove_passenger',
-      passengerId: foundPassenger.id,
-      passengerName: `${foundPassenger.firstName} ${foundPassenger.lastName}`,
-      content: `REQUEST: Please remove passenger ${foundPassenger.firstName} ${foundPassenger.lastName} (Ticket: ${foundPassenger.ticketNumber}) from the system. Reason: ${issueType === 'security_violation' ? 'Security Violation' : 'Issue at Check-in Counter'}. Details: ${issueDescription}`,
-    });
+      await addMessage({
+        boardType: 'admin',
+        staffName: `${staffUser.firstName} ${staffUser.lastName}`,
+        senderRole: 'airline_staff',
+        airlineCode: staffUser.airlineCode,
+        messageType: 'remove_passenger',
+        content: `REQUEST: Please remove passenger ${foundPassenger.firstName} ${foundPassenger.lastName} (Ticket: ${foundPassenger.ticketNumber}) from the system. Reason: ${issueType === 'security_violation' ? 'Security Violation' : 'Issue at Check-in Counter'}. Details: ${issueDescription}`,
+      });
 
-    toast({ 
-      title: 'Issue reported', 
-      description: 'Bags removed and admin notified to remove passenger',
-      className: 'bg-warning text-warning-foreground'
-    });
+      toast({
+        title: 'Issue reported',
+        description: 'Bags removed and admin notified to remove passenger',
+        className: 'bg-warning text-warning-foreground',
+      });
 
-    setShowIssueModal(false);
-    setIssueDescription('');
-    setTicketNumber('');
-    setFoundPassenger(undefined);
+      setShowIssueModal(false);
+      setIssueDescription('');
+      setTicketNumber('');
+      setFoundPassenger(undefined);
+    } catch (err) {
+      toast({ title: err.message || 'Failed to report issue', variant: 'destructive' });
+    }
   };
 
   const handleCancel = () => {

@@ -1,7 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { getFromStorage, setToStorage, STORAGE_KEYS } from '@/lib/storage';
-import { generateId, generateBagId, generateUsername, generatePassword } from '@/lib/generators';
-import { hashPasswordSync } from '@/lib/passwordUtils';
+import { api } from '@/lib/api';
 
 const DataContext = createContext(undefined);
 
@@ -13,196 +11,132 @@ export function DataProvider({ children }) {
   const [messages, setMessages] = useState([]);
   const [issues, setIssues] = useState([]);
 
-  // Load initial data
-  useEffect(() => {
-    setFlights(getFromStorage(STORAGE_KEYS.FLIGHTS, []));
-    setPassengers(getFromStorage(STORAGE_KEYS.PASSENGERS, []));
-    setBags(getFromStorage(STORAGE_KEYS.BAGS, []));
-    setStaff(getFromStorage(STORAGE_KEYS.STAFF, []));
-    setMessages(getFromStorage(STORAGE_KEYS.MESSAGES, []));
-    setIssues(getFromStorage(STORAGE_KEYS.ISSUES, []));
+  const refreshData = useCallback(async () => {
+    try {
+      const [f, p, b, s, m, i] = await Promise.all([
+        api.get('/flights'),
+        api.get('/passengers'),
+        api.get('/bags'),
+        api.get('/staff'),
+        api.get('/messages'),
+        api.get('/issues'),
+      ]);
+      setFlights(f);
+      setPassengers(p);
+      setBags(b);
+      setStaff(s);
+      setMessages(m);
+      setIssues(i);
+    } catch (err) {
+      console.error('Failed to refresh data:', err);
+    }
   }, []);
 
-  const refreshData = useCallback(() => {
-    setFlights(getFromStorage(STORAGE_KEYS.FLIGHTS, []));
-    setPassengers(getFromStorage(STORAGE_KEYS.PASSENGERS, []));
-    setBags(getFromStorage(STORAGE_KEYS.BAGS, []));
-    setStaff(getFromStorage(STORAGE_KEYS.STAFF, []));
-    setMessages(getFromStorage(STORAGE_KEYS.MESSAGES, []));
-    setIssues(getFromStorage(STORAGE_KEYS.ISSUES, []));
-  }, []);
+  useEffect(() => { refreshData(); }, [refreshData]);
 
   // Flights
-  const addFlight = useCallback((flightData) => {
-    const newFlight = {
-      ...flightData,
-      id: generateId(),
-      createdAt: new Date(),
-    };
-    const updated = [...flights, newFlight];
-    setFlights(updated);
-    setToStorage(STORAGE_KEYS.FLIGHTS, updated);
+  const addFlight = useCallback(async (flightData) => {
+    const newFlight = await api.post('/flights', flightData);
+    setFlights(prev => [newFlight, ...prev]);
     return newFlight;
-  }, [flights]);
+  }, []);
 
-  const removeFlight = useCallback((id) => {
-    const updated = flights.filter(f => f.id !== id);
-    setFlights(updated);
-    setToStorage(STORAGE_KEYS.FLIGHTS, updated);
-    // Also remove associated passengers and bags
-    const remainingPassengers = passengers.filter(p => p.flightId !== id);
-    setPassengers(remainingPassengers);
-    setToStorage(STORAGE_KEYS.PASSENGERS, remainingPassengers);
-    const remainingBags = bags.filter(b => b.flightId !== id);
-    setBags(remainingBags);
-    setToStorage(STORAGE_KEYS.BAGS, remainingBags);
-  }, [flights, passengers, bags]);
+  const removeFlight = useCallback(async (id) => {
+    await api.delete(`/flights/${id}`);
+    setFlights(prev => prev.filter(f => f.id !== id));
+    setPassengers(prev => prev.filter(p => p.flightId !== id));
+    setBags(prev => prev.filter(b => b.flightId !== id));
+  }, []);
 
-  const updateFlightGate = useCallback((id, terminal, gate) => {
-    const updated = flights.map(f => f.id === id ? { ...f, terminal, gate } : f);
-    setFlights(updated);
-    setToStorage(STORAGE_KEYS.FLIGHTS, updated);
-  }, [flights]);
+  const updateFlightGate = useCallback(async (id, terminal, gate) => {
+    const updated = await api.patch(`/flights/${id}/gate`, { terminal, gate });
+    setFlights(prev => prev.map(f => f.id === id ? updated : f));
+    return updated;
+  }, []);
 
   const getFlightById = useCallback((id) => flights.find(f => f.id === id), [flights]);
   const getFlightsByAirline = useCallback((airlineCode) => flights.filter(f => f.airlineCode === airlineCode), [flights]);
 
   // Passengers
-  const addPassenger = useCallback((passengerData) => {
-    const newPassenger = {
-      ...passengerData,
-      id: generateId(),
-      status: 'not_checked_in',
-      createdAt: new Date(),
-    };
-    const updated = [...passengers, newPassenger];
-    setPassengers(updated);
-    setToStorage(STORAGE_KEYS.PASSENGERS, updated);
+  const addPassenger = useCallback(async (passengerData) => {
+    const newPassenger = await api.post('/passengers', passengerData);
+    setPassengers(prev => [newPassenger, ...prev]);
     return newPassenger;
-  }, [passengers]);
+  }, []);
 
-  const removePassenger = useCallback((id) => {
-    const updated = passengers.filter(p => p.id !== id);
-    setPassengers(updated);
-    setToStorage(STORAGE_KEYS.PASSENGERS, updated);
-    // Also remove associated bags
-    const remainingBags = bags.filter(b => b.passengerId !== id);
-    setBags(remainingBags);
-    setToStorage(STORAGE_KEYS.BAGS, remainingBags);
-  }, [passengers, bags]);
+  const removePassenger = useCallback(async (id) => {
+    await api.delete(`/passengers/${id}`);
+    setPassengers(prev => prev.filter(p => p.id !== id));
+    setBags(prev => prev.filter(b => b.passengerId !== id));
+  }, []);
 
-  const updatePassengerStatus = useCallback((id, status) => {
-    const updated = passengers.map(p => p.id === id ? { ...p, status } : p);
-    setPassengers(updated);
-    setToStorage(STORAGE_KEYS.PASSENGERS, updated);
-  }, [passengers]);
+  const updatePassengerStatus = useCallback(async (id, status) => {
+    const updated = await api.patch(`/passengers/${id}/status`, { status });
+    setPassengers(prev => prev.map(p => p.id === id ? updated : p));
+    return updated;
+  }, []);
 
   const getPassengerById = useCallback((id) => passengers.find(p => p.id === id), [passengers]);
   const getPassengerByTicket = useCallback((ticketNumber) => passengers.find(p => p.ticketNumber === ticketNumber), [passengers]);
   const getPassengersByFlight = useCallback((flightId) => passengers.filter(p => p.flightId === flightId), [passengers]);
 
   // Bags
-  const addBag = useCallback((bagData) => {
-    const now = new Date();
-    const newBag = {
-      ...bagData,
-      id: generateId(),
-      createdAt: now,
-      updatedAt: now,
-      locationHistory: [{ location: bagData.location, timestamp: now }],
-    };
-    const updated = [...bags, newBag];
-    setBags(updated);
-    setToStorage(STORAGE_KEYS.BAGS, updated);
+  const addBag = useCallback(async (bagData) => {
+    const newBag = await api.post('/bags', bagData);
+    setBags(prev => [newBag, ...prev]);
     return newBag;
-  }, [bags]);
+  }, []);
 
-  const updateBagLocation = useCallback((id, location, gateNumber, updatedBy) => {
-    const now = new Date();
-    const updated = bags.map(b => {
-      if (b.id === id) {
-        return {
-          ...b,
-          location,
-          gateNumber: gateNumber || b.gateNumber,
-          updatedAt: now,
-          locationHistory: [...b.locationHistory, { location, timestamp: now, updatedBy }],
-        };
-      }
-      return b;
-    });
-    setBags(updated);
-    setToStorage(STORAGE_KEYS.BAGS, updated);
-  }, [bags]);
+  const updateBagLocation = useCallback(async (id, location, gateNumber, updatedBy) => {
+    const updated = await api.patch(`/bags/${id}/location`, { location, gateNumber, updatedBy });
+    setBags(prev => prev.map(b => b.id === id ? updated : b));
+    return updated;
+  }, []);
 
-  const removeBag = useCallback((id) => {
-    const updated = bags.filter(b => b.id !== id);
-    setBags(updated);
-    setToStorage(STORAGE_KEYS.BAGS, updated);
-  }, [bags]);
+  const removeBag = useCallback(async (id) => {
+    await api.delete(`/bags/${id}`);
+    setBags(prev => prev.filter(b => b.id !== id));
+  }, []);
 
   const getBagById = useCallback((bagId) => bags.find(b => b.bagId === bagId), [bags]);
   const getBagsByPassenger = useCallback((passengerId) => bags.filter(b => b.passengerId === passengerId), [bags]);
   const getBagsByFlight = useCallback((flightId) => bags.filter(b => b.flightId === flightId), [bags]);
   const getBagsByLocation = useCallback((location) => bags.filter(b => b.location === location), [bags]);
 
-  // Staff - password is hashed before storage
-  const addStaff = useCallback((staffData) => {
-    const username = generateUsername(staffData.lastName);
-    const plainPassword = generatePassword();
-    const newStaff = {
-      ...staffData,
-      id: generateId(),
-      username,
-      password: hashPasswordSync(plainPassword),
-      requiresPasswordChange: true,
-      createdAt: new Date(),
-    };
-    const updated = [...staff, newStaff];
-    setStaff(updated);
-    setToStorage(STORAGE_KEYS.STAFF, updated);
-    // Return plain credentials for email sending only - never stored in plain text
-    return { staff: newStaff, username, password: plainPassword };
-  }, [staff]);
+  // Staff
+  const addStaff = useCallback(async (staffData) => {
+    const result = await api.post('/staff', staffData);
+    const { generatedCredentials, ...staffMember } = result;
+    setStaff(prev => [staffMember, ...prev]);
+    return { staff: staffMember, username: generatedCredentials.username, password: generatedCredentials.password };
+  }, []);
 
-  const removeStaff = useCallback((id) => {
-    const updated = staff.filter(s => s.id !== id);
-    setStaff(updated);
-    setToStorage(STORAGE_KEYS.STAFF, updated);
-  }, [staff]);
+  const removeStaff = useCallback(async (id) => {
+    await api.delete(`/staff/${id}`);
+    setStaff(prev => prev.filter(s => s.id !== id));
+  }, []);
 
   const getStaffByType = useCallback((type) => staff.filter(s => s.staffType === type), [staff]);
 
   // Messages
-  const addMessage = useCallback((messageData) => {
-    const newMessage = {
-      ...messageData,
-      id: generateId(),
-      createdAt: new Date(),
-    };
-    const updated = [...messages, newMessage];
-    setMessages(updated);
-    setToStorage(STORAGE_KEYS.MESSAGES, updated);
+  const addMessage = useCallback(async (messageData) => {
+    const newMessage = await api.post('/messages', messageData);
+    setMessages(prev => [newMessage, ...prev]);
     return newMessage;
-  }, [messages]);
+  }, []);
 
-  const getMessagesByBoard = useCallback((boardType) => 
-    messages.filter(m => m.boardType === boardType).sort((a, b) => 
-      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    ), [messages]);
+  const getMessagesByBoard = useCallback((boardType) =>
+    messages
+      .filter(m => m.boardType === boardType)
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+  [messages]);
 
   // Issues
-  const addIssue = useCallback((issueData) => {
-    const newIssue = {
-      ...issueData,
-      id: generateId(),
-      createdAt: new Date(),
-    };
-    const updated = [...issues, newIssue];
-    setIssues(updated);
-    setToStorage(STORAGE_KEYS.ISSUES, updated);
+  const addIssue = useCallback(async (issueData) => {
+    const newIssue = await api.post('/issues', issueData);
+    setIssues(prev => [newIssue, ...prev]);
     return newIssue;
-  }, [issues]);
+  }, []);
 
   return (
     <DataContext.Provider value={{
