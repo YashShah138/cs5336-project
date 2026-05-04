@@ -1,4 +1,5 @@
-# Welcome to your Lovable project
+# CS 5336 - Web Application Development Project
+- @date: Spring 2026
 
 ## Project info
 
