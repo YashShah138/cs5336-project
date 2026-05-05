@@ -24,15 +24,16 @@ async function request(method, path, body) {
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
+  const data = await res.json();
+
   if (res.status === 401) {
     clearToken();
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
     }
-    return;
+    throw new Error(data.error || 'Unauthorized');
   }
 
-  const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
 }

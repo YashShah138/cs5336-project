@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { api } from '@/lib/api';
+import { api, getToken } from '@/lib/api';
 
 const DataContext = createContext(undefined);
 
@@ -12,27 +12,24 @@ export function DataProvider({ children }) {
   const [issues, setIssues] = useState([]);
 
   const refreshData = useCallback(async () => {
-    try {
-      const [f, p, b, s, m, i] = await Promise.all([
-        api.get('/flights'),
-        api.get('/passengers'),
-        api.get('/bags'),
-        api.get('/staff'),
-        api.get('/messages'),
-        api.get('/issues'),
-      ]);
-      setFlights(f ?? []);
-      setPassengers(p ?? []);
-      setBags(b ?? []);
-      setStaff(s ?? []);
-      setMessages(m ?? []);
-      setIssues(i ?? []);
-    } catch (err) {
-      console.error('Failed to refresh data:', err);
-    }
+    const results = await Promise.allSettled([
+      api.get('/flights'),
+      api.get('/passengers'),
+      api.get('/bags'),
+      api.get('/staff'),
+      api.get('/messages'),
+      api.get('/issues'),
+    ]);
+    const [f, p, b, s, m, i] = results.map(r => r.status === 'fulfilled' ? r.value : null);
+    if (f != null) setFlights(f ?? []);
+    if (p != null) setPassengers(p ?? []);
+    if (b != null) setBags(b ?? []);
+    if (s != null) setStaff(s ?? []);
+    if (m != null) setMessages(m ?? []);
+    if (i != null) setIssues(i ?? []);
   }, []);
 
-  useEffect(() => { refreshData(); }, [refreshData]);
+  useEffect(() => { if (getToken()) refreshData(); }, [refreshData]);
 
   // Flights
   const addFlight = useCallback(async (flightData) => {

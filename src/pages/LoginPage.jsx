@@ -244,17 +244,6 @@ export default function LoginPage() {
               )}
             </Button>
 
-            <div className="border-t pt-4 mt-2 rounded-lg border bg-muted/50 p-3 text-xs space-y-1.5">
-              <p className="font-semibold text-sm mb-2">Test Credentials</p>
-              <p><span className="font-medium">Admin:</span> admin / Admin123</p>
-              <p className="text-muted-foreground">
-                Staff and passenger credentials come from the official Test Data
-                spreadsheet — run <code className="font-mono">npm run seed</code>{' '}
-                in the backend, then refer to the credentials list it prints on
-                first run for staff usernames/passwords. Passenger logins use any
-                seeded <em>(identification, ticket number)</em> pair.
-              </p>
-            </div>
           </form>
         </CardContent>
       </Card>
