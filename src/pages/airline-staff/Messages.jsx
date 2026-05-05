@@ -22,7 +22,9 @@ export default function AirlineStaffMessages() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [handleViolationMsg, setHandleViolationMsg] = useState(null);
 
-  const messages = getMessagesByBoard('airline');
+  const messages = getMessagesByBoard('airline').filter(
+    m => !m.airlineCode || m.airlineCode === airlineCode
+  );
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
