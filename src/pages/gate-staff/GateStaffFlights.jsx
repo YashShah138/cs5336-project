@@ -62,15 +62,18 @@ export default function GateStaffFlights() {
   const handleChangeGate = () => {
     if (!changeGateFlight || !newGate.trim()) return;
 
+    const terminal = newTerminal || changeGateFlight.terminal;
+    const fullGate = terminal + newGate.trim();
+
     // Check gate not already occupied
-    const gateOccupied = flights.some(f => f.id !== changeGateFlight.id && f.gate === newGate.toUpperCase() && f.terminal === (newTerminal.toUpperCase() || changeGateFlight.terminal));
+    const gateOccupied = flights.some(f => f.id !== changeGateFlight.id && f.gate === fullGate && f.terminal === terminal);
     if (gateOccupied) {
       toast({ title: 'Gate already occupied by another flight', variant: 'destructive' });
       return;
     }
 
     const oldGate = changeGateFlight.gate;
-    updateFlightGate(changeGateFlight.id, newTerminal.toUpperCase() || changeGateFlight.terminal, newGate.toUpperCase());
+    updateFlightGate(changeGateFlight.id, terminal, fullGate);
 
     // Notify ground staff via message board
     addMessage({
@@ -79,13 +82,13 @@ export default function GateStaffFlights() {
       senderRole: 'gate_staff',
       airlineCode: airlineCode,
       messageType: 'gate_change',
-      content: `GATE CHANGE: Flight ${changeGateFlight.airlineCode}${changeGateFlight.flightNumber} has been moved from Gate ${oldGate} to Gate ${newGate.toUpperCase()}. Please redirect bags accordingly.`,
+      content: `GATE CHANGE: Flight ${changeGateFlight.airlineCode}${changeGateFlight.flightNumber} has been moved from Gate ${oldGate} to Gate ${fullGate}. Please redirect bags accordingly.`,
     });
 
-    toast({ 
-      title: 'Gate changed', 
-      description: `Flight ${changeGateFlight.airlineCode}${changeGateFlight.flightNumber} moved to Gate ${newGate.toUpperCase()}. Ground staff notified.`,
-      className: 'bg-success text-success-foreground' 
+    toast({
+      title: 'Gate changed',
+      description: `Flight ${changeGateFlight.airlineCode}${changeGateFlight.flightNumber} moved to Gate ${fullGate}. Ground staff notified.`,
+      className: 'bg-success text-success-foreground'
     });
 
     setChangeGateFlight(null);
@@ -172,11 +175,12 @@ export default function GateStaffFlights() {
             </p>
             <div className="space-y-2">
               <Label>New Terminal</Label>
-              <Input value={newTerminal} onChange={(e) => setNewTerminal(e.target.value)} placeholder="e.g., B" />
+              <Input value={newTerminal} onChange={(e) => setNewTerminal(e.target.value.toUpperCase())} placeholder="e.g., B" />
             </div>
             <div className="space-y-2">
-              <Label>New Gate</Label>
-              <Input value={newGate} onChange={(e) => setNewGate(e.target.value)} placeholder="e.g., B5" />
+              <Label>New Gate Number</Label>
+              <Input value={newGate} onChange={(e) => setNewGate(e.target.value.replace(/\D/g, ''))} placeholder="e.g., 5" />
+              <p className="text-xs text-muted-foreground">Enter the number only — the terminal letter will be added automatically.</p>
             </div>
             <p className="text-xs text-muted-foreground">Ground staff will be notified of this gate change.</p>
           </div>
