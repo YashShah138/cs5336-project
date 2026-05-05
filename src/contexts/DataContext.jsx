@@ -21,12 +21,12 @@ export function DataProvider({ children }) {
         api.get('/messages'),
         api.get('/issues'),
       ]);
-      setFlights(f);
-      setPassengers(p);
-      setBags(b);
-      setStaff(s);
-      setMessages(m);
-      setIssues(i);
+      setFlights(f ?? []);
+      setPassengers(p ?? []);
+      setBags(b ?? []);
+      setStaff(s ?? []);
+      setMessages(m ?? []);
+      setIssues(i ?? []);
     } catch (err) {
       console.error('Failed to refresh data:', err);
     }

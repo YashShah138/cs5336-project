@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useData } from '@/contexts/DataContext';
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ const userTypeOptions = [
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { refreshData } = useData();
   const { toast } = useToast();
   
   const [userType, setUserType] = useState('administrator');
@@ -70,12 +72,13 @@ export default function LoginPage() {
     setIsLoading(false);
 
     if (result.success) {
-      toast({ 
-        title: 'Login successful', 
+      await refreshData();
+      toast({
+        title: 'Login successful',
         description: `Welcome back!`,
         className: 'bg-success text-success-foreground'
       });
-      
+
       // Navigate to appropriate dashboard
       const routes = {
         administrator: '/admin',
