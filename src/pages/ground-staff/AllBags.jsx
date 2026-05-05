@@ -73,7 +73,12 @@ export default function AllBags() {
                         <TableCell>{passenger?.ticketNumber}</TableCell>
                         <TableCell>{passenger ? `${passenger.firstName} ${passenger.lastName}` : '-'}</TableCell>
                         <TableCell><BagLocationBadge location={bag.location} /></TableCell>
-                        <TableCell>{format(new Date(bag.updatedAt), 'HH:mm')}</TableCell>
+                        <TableCell>
+                          {(() => {
+                            const ts = bag.updatedAt ?? bag.locationHistory?.at(-1)?.timestamp;
+                            return ts ? format(new Date(ts), 'HH:mm') : '—';
+                          })()}
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button variant="ghost" size="icon" onClick={() => setViewBag(bag.id)}>
                             <Eye className="h-4 w-4" />

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Outlet, NavLink, useLocation } from 'react-router-dom';
+import { Outlet, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { DashboardLayout } from '@/components/DashboardLayout';
 import { useData } from '@/contexts/DataContext';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 
 export default function GroundStaffDashboard() {
   const location = useLocation();
+  const navigate = useNavigate();
   const { flights } = useData();
   const [workLocation, setWorkLocation] = useState(null); // 'security' or gate identifier
   const [selectedGate, setSelectedGate] = useState(null);
@@ -29,11 +30,13 @@ export default function GroundStaffDashboard() {
   const handleSelectSecurity = () => {
     setWorkLocation('security');
     setSelectedGate(null);
+    navigate('/ground-staff/security');
   };
 
   const handleSelectGate = (gate) => {
     setSelectedGate(gate);
     setWorkLocation('gate');
+    navigate('/ground-staff/loading');
   };
 
   const handleChangeLocation = () => {
