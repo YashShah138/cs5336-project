@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { useToast } from '@/hooks/use-toast';
 import { validateAirlineCode, validateFlightNumber } from '@/lib/validation';
-import { Plus, Search, Eye, Trash2, ArrowUpDown } from 'lucide-react';
+import { Plus, Search, Eye, PlaneTakeoff, ArrowUpDown } from 'lucide-react';
 import { PassengerStatusBadge } from '@/components/StatusBadges';
 
 export default function FlightsManagement() {
@@ -102,11 +102,16 @@ export default function FlightsManagement() {
     setErrors({});
   };
 
-  const handleDeleteFlight = () => {
+  const handleDeleteFlight = async () => {
     if (deleteFlightId) {
-      removeFlight(deleteFlightId);
-      toast({ title: 'Flight removed successfully', className: 'bg-success text-success-foreground' });
-      setDeleteFlightId(null);
+      try {
+        await removeFlight(deleteFlightId);
+        toast({ title: 'Flight departed successfully', className: 'bg-success text-success-foreground' });
+        setDeleteFlightId(null);
+      } catch (err) {
+        toast({ title: 'Cannot simulate departure', description: err.message, variant: 'destructive' });
+        setDeleteFlightId(null);
+      }
     }
   };
 
@@ -313,8 +318,8 @@ export default function FlightsManagement() {
                             <Button variant="ghost" size="icon" onClick={() => setViewFlight(flight.id)} title="View Details">
                               <Eye className="h-4 w-4" />
                             </Button>
-                            <Button variant="ghost" size="icon" onClick={() => setDeleteFlightId(flight.id)} className="text-destructive hover:text-destructive" title="Remove Flight">
-                              <Trash2 className="h-4 w-4" />
+                            <Button variant="ghost" size="icon" onClick={() => setDeleteFlightId(flight.id)} className="text-destructive hover:text-destructive" title="Simulate Departure">
+                              <PlaneTakeoff className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -391,13 +396,13 @@ export default function FlightsManagement() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete Confirmation */}
+      {/* Departure Confirmation */}
       <ConfirmDialog
         open={!!deleteFlightId}
         onOpenChange={() => setDeleteFlightId(null)}
-        title="Remove Flight"
-        description={`Are you sure you want to remove the flight "${(() => { const f = flights.find(f => f.id === deleteFlightId); return f ? `${f.airlineCode}${f.flightNumber}` : ''; })()}"? This will also remove all associated passengers and their bags.`}
-        confirmLabel="Remove Flight"
+        title="Simulate Departure"
+        description={`Simulate departure for flight "${(() => { const f = flights.find(f => f.id === deleteFlightId); return f ? `${f.airlineCode}${f.flightNumber}` : ''; })()}"? All passengers must be boarded and all bags must be loaded. This will permanently remove the flight and its records.`}
+        confirmLabel="Confirm Departure"
         onConfirm={handleDeleteFlight}
         isDestructive
       />
