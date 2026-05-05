@@ -15,7 +15,7 @@ export function clearToken() {
 
 async function request(method, path, body) {
   const token = getToken();
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': '1' };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE_URL}${path}`, {
